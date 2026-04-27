@@ -1,0 +1,14 @@
+[
+  {
+    "username": "ADMIN",
+    "password": "ADMIN888",
+    "role": "admin",
+    "name": "ADMIN"
+  },
+  {
+    "username": "dealer",
+    "password": "dealer123",
+    "role": "dealer",
+    "name": "TOKO MAJU"
+  }
+]
