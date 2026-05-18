@@ -107,8 +107,8 @@ function DealerPage({ user, onLogout }) {
       html: `
         <div style="text-align: left; margin-bottom: 10px; font-size: 14px;"><strong>${product["NAMA BARANG"]}</strong></div>
         <div style="text-align: left;"><label>MODAL (CP)</label><input id="swal-cp" type="number" class="swal2-input" value="${product.CP || 0}"></div>
-        <div style="text-align: left;"><label>SRP (SP)</label><input id="swal-sp" type="number" class="swal2-input" value="${product.SP || 0}"></div>
-        <div style="text-align: left;"><label>JUAL (PRICE)</label><input id="swal-price" type="number" class="swal2-input" value="${product.PRICE || 0}"></div>
+        <div style="text-align: left;"><label>SRP (SP)</label><input id="swal-sp" type="number" class="swal2-input" value="${product.SP || 0}" oninput="document.getElementById('swal-price').value = this.value"></div>
+        <div style="text-align: left;"><label>JUAL / HARGA WEB (PRICE)</label><input id="swal-price" type="number" class="swal2-input" value="${product.PRICE || 0}"></div>
       `,
       focusConfirm: false,
       showCancelButton: true,

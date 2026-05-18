@@ -3,6 +3,7 @@ import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import SalesPage from "./components/SalesPage";
 import DealerPage from "./components/DealerPage";
+import PicPage from "./components/PicPage";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -39,6 +40,9 @@ function App() {
 
     case "sales_dealer":
       return <DealerPage user={user} onLogout={handleLogout} />;
+
+    case "pic":
+      return <PicPage user={user} onLogout={handleLogout} />;
 
     default:
       return <Dashboard user={user} onLogout={handleLogout} />;
