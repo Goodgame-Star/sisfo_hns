@@ -3,7 +3,7 @@ import Swal from "sweetalert2";
 import { MultiSelect, styles } from "./DashboardHelpers";
 import { supabase } from "./supabaseClient";
 
-function PicPage({ user, onLogout }) {
+function PicPage({ user, onLogout, onShowGuide }) {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [filterCats, setFilterCats] = useState([]);
@@ -19,8 +19,18 @@ function PicPage({ user, onLogout }) {
       query = query.in("KATEGORI", picKategori);
     }
 
-    const { data: pData } = await query;
-    setProducts(pData || []);
+    const [{ data: pData }, { data: mappings }] = await Promise.all([
+      query,
+      supabase.from("product_woo_mapping").select("kode_accurate").eq("is_active", true),
+    ]);
+
+    const mappedKodes = new Set((mappings || []).map((m) => (m.kode_accurate || "").trim().toUpperCase()));
+    setProducts(
+      (pData || []).map((p) => ({
+        ...p,
+        hasMapped: mappedKodes.has((p["Kode Accurate"] || "").trim().toUpperCase()),
+      })),
+    );
   };
 
   useEffect(() => {
@@ -49,8 +59,8 @@ function PicPage({ user, onLogout }) {
       html: `
         <div style="text-align: left; margin-bottom: 10px; font-size: 14px;"><strong>${product["NAMA BARANG"]}</strong></div>
         <div style="text-align: left;"><label>MODAL (CP)</label><input id="swal-cp" type="number" class="swal2-input" value="${product.CP || 0}"></div>
-        <div style="text-align: left;"><label>SRP (SP)</label><input id="swal-sp" type="number" class="swal2-input" value="${product.SP || 0}" oninput="document.getElementById('swal-price').value = this.value"></div>
-        <div style="text-align: left;"><label>JUAL / HARGA WEB (PRICE)</label><input id="swal-price" type="number" class="swal2-input" value="${product.PRICE || 0}"></div>
+        <div style="text-align: left;"><label>SRP / HARGA WEB (SP) — Ini yang sync ke WooCommerce</label><input id="swal-sp" type="number" class="swal2-input" value="${product.SP || 0}"></div>
+        <div style="text-align: left;"><label>HARGA JUAL DEALER (PRICE)</label><input id="swal-price" type="number" class="swal2-input" value="${product.PRICE || 0}"></div>
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -85,30 +95,6 @@ function PicPage({ user, onLogout }) {
     }
   };
 
-  // ================= TOGGLE SYNC =================
-  const handleToggleSync = async (product) => {
-    const newStatus = !product.is_sync;
-
-    // Optimistic Update (Biar UI terasa cepat)
-    setProducts((prev) =>
-      prev.map((p) =>
-        p["Kode Accurate"] === product["Kode Accurate"]
-          ? { ...p, is_sync: newStatus }
-          : p,
-      ),
-    );
-
-    // Update Database
-    const { error } = await supabase
-      .from("products")
-      .update({ is_sync: newStatus })
-      .eq("Kode Accurate", product["Kode Accurate"]);
-
-    if (error) {
-      Swal.fire("Error", "Gagal update status sync: " + error.message, "error");
-      loadData(); // Revert data jika error
-    }
-  };
 
   // ================= DATA PROCESSING =================
   const filteredProducts = useMemo(() => {
@@ -178,9 +164,14 @@ function PicPage({ user, onLogout }) {
             </p>
           )}
         </div>
-        <button onClick={onLogout} className="btn-logout">
-          Keluar
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={onShowGuide} className="btn-print" style={{ background: "#3182ce" }}>
+            📖 Panduan
+          </button>
+          <button onClick={onLogout} className="btn-logout">
+            Keluar
+          </button>
+        </div>
       </div>
 
       <div className="filter-card">
@@ -226,8 +217,8 @@ function PicPage({ user, onLogout }) {
               <th>KODE</th>
               <th>NAMA BARANG</th>
               <th>MODAL</th>
-              <th>SRP</th>
-              <th>JUAL / WEB</th>
+              <th>SRP / HARGA WEB</th>
+              <th>HARGA DEALER</th>
               <th style={{ textAlign: "center" }}>STOK</th>
               <th style={{ textAlign: "center" }}>SYNC KE WEB?</th>
               <th style={{ textAlign: "center" }}>AKSI</th>
@@ -237,7 +228,7 @@ function PicPage({ user, onLogout }) {
             {filteredProducts.map((item) => (
               <tr
                 key={item["Kode Accurate"]}
-                style={{ background: item.is_sync ? "#ebf8ff" : "transparent" }}
+                style={{ background: item.hasMapped ? "#ebf8ff" : "transparent" }}
               >
                 <td style={{ fontWeight: "bold", color: "#667eea" }}>
                   {item["Kode Accurate"]}
@@ -263,21 +254,18 @@ function PicPage({ user, onLogout }) {
                 </td>
 
                 <td style={{ textAlign: "center" }}>
-                  <button
-                    onClick={() => handleToggleSync(item)}
+                  <span
                     style={{
-                      background: item.is_sync ? "#38a169" : "#cbd5e0",
-                      color: "white",
-                      padding: "6px 12px",
+                      background: item.hasMapped ? "#c6f6d5" : "#fed7d7",
+                      color: item.hasMapped ? "#276749" : "#9b2c2c",
+                      padding: "4px 12px",
                       borderRadius: "20px",
-                      cursor: "pointer",
-                      border: "none",
                       fontWeight: "bold",
-                      width: "100px",
+                      fontSize: "12px",
                     }}
                   >
-                    {item.is_sync ? "✅ YA" : "❌ TIDAK"}
-                  </button>
+                    {item.hasMapped ? "✅ YA" : "❌ TIDAK"}
+                  </span>
                 </td>
 
                 <td style={{ textAlign: "center" }}>

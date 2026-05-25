@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { supabase } from "./supabaseClient";
 import { styles } from "./DashboardHelpers";
 
-function SalesPage({ user, onLogout }) {
+function SalesPage({ user, onLogout, onShowGuide }) {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [scanMode, setScanMode] = useState("OUT");
@@ -117,7 +117,12 @@ function SalesPage({ user, onLogout }) {
           <h1 className="header-title">📦 {user.lokasi_akses || user.location}</h1>
           <small>{user.nama || user.name}</small>
         </div>
-        <button onClick={onLogout} className="btn-logout">Keluar</button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={onShowGuide} className="btn-print" style={{ background: "#3182ce" }}>
+            📖 Panduan
+          </button>
+          <button onClick={onLogout} className="btn-logout">Keluar</button>
+        </div>
       </div>
 
       {/* MODE */}

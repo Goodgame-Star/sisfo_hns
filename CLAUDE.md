@@ -1,7 +1,7 @@
 # CLAUDE.md — sisfo_hns Project Context
 
-> **Status**: 🟡 In Development — Foundation Done, Logic & PIC Routing Pending
-> **Last Updated**: 18 Mei 2026
+> **Status**: 🟡 In Development — Sync Sheets ✅, Sync to Woo ⏳ (mapping coverage ~22%)
+> **Last Updated**: 22 Mei 2026
 > **Owner**: Kelvin (HNS IT Center, Batam)
 
 ---
@@ -104,6 +104,8 @@ Sudah di-set via `supabase secrets set`:
 - ✅ `WOO_CONSUMER_KEY`
 - ✅ `WOO_CONSUMER_SECRET`
 - ✅ `WOO_BASE_URL`
+- ✅ `GOOGLE_SERVICE_ACCOUNT_JSON` (service account: sync-acc-web@refined-sum-468008-c3.iam.gserviceaccount.com)
+- ✅ `GOOGLE_SHEET_ID` (1Y71apt1eLrXRySexuEnKqdtUDqmtx-kLWTqFDufn7qU)
 
 ---
 
@@ -127,8 +129,13 @@ Sudah di-set via `supabase secrets set`:
 - [x] Supabase CLI terinstall & ter-link ke project `hptfudqtrnyeqcqhhaeh`
 - [x] Migration `20260518111300_add_woo_sync_tables.sql` (3 tabel + view + trigger)
 - [x] Secrets WOO\_\* di-set di Supabase
-- [x] Edge Function placeholder: `build-woo-mapping` (deployed)
-- [x] Edge Function placeholder: `sync-to-woo` (deployed)
+- [x] Migration `20260519100000_woo_mapping_v2.sql` — 4 kolom baru + index + view update
+- [x] Edge Function `build-woo-mapping` v2 (deployed) — 4-level smart matching + variation detection
+- [x] Edge Function `sync-to-woo` (deployed) — sync kolom `SP` (SRP) ke WooCommerce
+- [x] Edge Function `sync-from-sheets` (deployed) — sync 6023 produk dari Google Sheets MASTER_DATA ✅ 2026-05-20
+- [x] Migration `20260519110000_woo_mapping_public_read.sql` ✅
+- [x] Migration `20260519120000_add_sheets_config.sql` ✅
+- [x] `woo_config`: `google_sheets_id` + `google_sheets_tab` = MASTER_DATA di-set ✅
 
 #### Test Scripts
 
@@ -155,15 +162,17 @@ Sudah di-set via `supabase secrets set`:
 
 #### 🟡 Edge Functions Logic
 
-- [x] **`build-woo-mapping`** — port logic dari `test-smart-match.js` ke Deno
-  - [x] Fetch produk Woo (pagination)
-  - [x] Parse SKU yang dipisah slash
-  - [x] Upsert ke `product_woo_mapping`
+- [x] **`build-woo-mapping`** v2 — 4-level smart matching
+  - [x] Level 1: SKU exact match (confidence 100)
+  - [x] Level 2: SKU multi-kode / slash-separated (confidence 95)
+  - [x] Level 3: Keyword match di nama produk (confidence 70-85)
+  - [x] Level 4: WooCommerce variation detection by spec (confidence up to 90)
+  - [x] `confidence_score`, `match_method`, `woo_variation_id`, `needs_review` columns
   - [x] **Deploy**: `supabase functions deploy build-woo-mapping --no-verify-jwt`
 - [x] **`sync-to-woo`** — handler webhook DB
   - [x] Trigger by DB webhook saat UPDATE `products`
   - [x] Cek toggle `woo_config.auto_sync_enabled`
-  - [x] Skip kalau PRICE tidak berubah
+  - [x] Skip kalau SP (SRP) tidak berubah
   - [x] Cari `woo_product_id` dari mapping table
   - [x] Handle multi-kode case (1 Woo = N Supabase)
   - [x] Push harga ke WooCommerce REST API
@@ -315,13 +324,14 @@ node generate-sql.js             # Convert CSV → SQL
 
 ## 🐛 Known Issues
 
-| Issue                                          | Severity    | Status             |
-| ---------------------------------------------- | ----------- | ------------------ |
-| PIC routing belum ada di App.js                | 🔴 Critical | TODO               |
-| Pembatasan kategori PIC belum implement        | 🔴 Critical | TODO               |
-| Edge Functions masih placeholder               | 🟡 Medium   | TODO Day 2-4       |
-| Auth pakai password plaintext di tabel `users` | 🟡 Medium   | Future improvement |
-| Inline styling di Dashboard banyak             | 🟢 Low      | Future refactor    |
+| Issue                                                        | Severity    | Status                    |
+| ------------------------------------------------------------ | ----------- | ------------------------- |
+| PIC routing belum ada di App.js                              | 🔴 Critical | TODO                      |
+| Pembatasan kategori PIC belum implement                      | 🔴 Critical | TODO                      |
+| Mapping coverage rendah (~22%): 1.338/6.023+ produk          | 🔴 Critical | Perlu re-run + investigasi |
+| Kode 2512xxxxxx & 2601xxxxxx banyak yang tidak ter-mapping   | 🟡 Medium   | Perlu manual mapping / re-run build-woo-mapping |
+| Auth pakai password plaintext di tabel `users`               | 🟡 Medium   | Future improvement        |
+| Inline styling di Dashboard banyak                           | 🟢 Low      | Future refactor           |
 
 ---
 
@@ -354,6 +364,34 @@ node generate-sql.js             # Convert CSV → SQL
 - Edge Function `build-woo-mapping`: logic lengkap (port dari test-smart-match.js) ✅
 - Edge Function `sync-to-woo`: webhook handler lengkap + sync_log ✅
 - Sisa: deploy functions + run migration + seed + setup DB webhook + end-to-end test
+
+### 2026-05-19
+
+- Smart Matching v2 implemented: 4-level algo (SKU exact, SKU multi, keyword name, variation detection)
+- Migration `20260519100000_woo_mapping_v2.sql`: tambah `confidence_score`, `match_method`, `woo_variation_id`, `needs_review` ke `product_woo_mapping`
+- View `products_with_woo_status` di-update untuk include kolom baru + `mapping_status='mapped_review'`
+- Edge Function `build-woo-mapping` v2 siap deploy
+
+### 2026-05-20
+
+- Google Service Account JSON di-set sebagai Supabase secret (`GOOGLE_SERVICE_ACCOUNT_JSON`)
+- `GOOGLE_SHEET_ID` di-set (sheet Accurate: tab MASTER_DATA, 6023 produk)
+- Migration `20260519110000` + `20260519120000` applied ✅
+- Edge Function `sync-from-sheets` deployed & tested: 6023 produk sync OK, 0 error ✅
+- Edge Function `sync-to-woo` di-fix: sync kolom **SP** (SRP) bukan PRICE ke WooCommerce
+- PicPage.js label diperbaiki: SP = "SRP / HARGA WEB", PRICE = "HARGA JUAL DEALER"
+- File credentials (`GOOGLE_SERVICE_ACCOUNT_JSON`) ditambah ke `.gitignore`
+- Sisa: setup DB webhook di Supabase Dashboard + seed kategori_pic + end-to-end test
+
+### 2026-05-22
+
+- **Diagnosis sync issue**: Semua sync_log `skipped` — root cause: kode yang di-edit PIC tidak ada di `product_woo_mapping`
+- Mapping coverage rendah: hanya 1.338 dari 6.023+ produk (~22%) berhasil di-mapping
+- Kode `2512000245` (Canon Cartridge 810) & `2601000080` (Lenovo IdeaPad) = tidak ada di mapping
+- **Bug fix** `sync-to-woo`: fallback default URL diubah dari `hnsitcenter.id` (production!) ke `dev.hnsitcenter.id` (staging) — mencegah sync tidak sengaja ke production ✅
+- Edge Function `sync-to-woo` di-deploy ulang ✅
+- `WOO_BASE_URL` secret perlu diverifikasi manual di Supabase Dashboard
+- **Next**: re-run `build-woo-mapping` + investigasi kenapa banyak kode 2512/2601 tidak ter-mapping
 
 ---
 

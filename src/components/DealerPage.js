@@ -5,7 +5,7 @@ import { supabase } from "./supabaseClient";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-function DealerPage({ user, onLogout }) {
+function DealerPage({ user, onLogout, onShowGuide }) {
   const [products, setProducts] = useState([]);
   const [stockLocations, setStockLocations] = useState([]);
   const [search, setSearch] = useState("");
@@ -172,7 +172,12 @@ function DealerPage({ user, onLogout }) {
             <strong>{user?.name}</strong> | <span style={{color: '#3182ce'}}>{selectedIds.length} barang dipilih</span>
           </p>
         </div>
-        <button onClick={onLogout} className="btn-logout">Keluar</button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={onShowGuide} className="btn-print" style={{ background: "#3182ce" }}>
+            📖 Panduan
+          </button>
+          <button onClick={onLogout} className="btn-logout">Keluar</button>
+        </div>
       </div>
 
       <div className="filter-card">

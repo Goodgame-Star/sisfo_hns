@@ -16,7 +16,7 @@ import StockMovementModal from "./StockMovementModal";
 import DailyStockCheckModal from "./DailyStockCheckModal";
 import StockAlertsPanel from "./StockAlertsPanel";
 
-function Dashboard({ user, onLogout }) {
+function Dashboard({ user, onLogout, onShowGuide }) {
   const [products, setProducts] = useState([]);
   const [stockLocations, setStockLocations] = useState([]);
   const [search, setSearch] = useState("");
@@ -29,6 +29,7 @@ function Dashboard({ user, onLogout }) {
   });
   const [checked, setChecked] = useState({});
   const [isImporting, setIsImporting] = useState(false);
+  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
 
   const [filterLocation, setFilterLocation] = useState(
     user?.location !== "all" ? user?.location : "gudang",
@@ -56,6 +57,49 @@ function Dashboard({ user, onLogout }) {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterLocation]);
+
+  // --- FUNGSI: SYNC DARI GOOGLE SHEETS (ACCURATE) ---
+  const handleSyncFromSheets = async () => {
+    setIsSyncingSheets(true);
+    try {
+      const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || "https://hptfudqtrnyeqcqhhaeh.supabase.co";
+      const ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-from-sheets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${ANON_KEY}`,
+        },
+      });
+
+      const result = await res.json();
+
+      if (result.status === "success") {
+        Swal.fire({
+          icon: "success",
+          title: "Sync Berhasil!",
+          html: `
+            <div style="text-align:left; font-size:14px;">
+              <p>📥 <b>${result.inserted}</b> produk baru ditambahkan</p>
+              <p>🔄 <b>${result.updated}</b> produk diupdate</p>
+              ${result.errors > 0 ? `<p style="color:red">❌ <b>${result.errors}</b> error</p>` : ""}
+              <p style="color:#718096; font-size:12px; margin-top:8px;">
+                ${result.rows_fetched} baris dari Google Sheets • ${result.duration_ms}ms
+              </p>
+            </div>
+          `,
+        });
+        loadData();
+      } else {
+        Swal.fire("Gagal", result.message || "Terjadi kesalahan", "error");
+      }
+    } catch (err) {
+      Swal.fire("Error", "Tidak bisa menghubungi server: " + err.message, "error");
+    } finally {
+      setIsSyncingSheets(false);
+    }
+  };
 
   // --- FUNGSI 1: IMPORT CERDAS (UPDATE DATA BARU + BARCODE) ---
   // Tombol HIJAU. Gunakan dengan file "PRICELIST DEALER.xlsx" atau CSV-nya.
@@ -529,6 +573,9 @@ function Dashboard({ user, onLogout }) {
             </button>
           )}
 
+          <button onClick={onShowGuide} className="btn-print" style={{ background: "#3182ce" }}>
+            📖 Panduan
+          </button>
           <button onClick={onLogout} className="btn-logout">
             Keluar
           </button>
@@ -680,6 +727,22 @@ function Dashboard({ user, onLogout }) {
             >
               {isImporting ? "⏳ Processing..." : "📥 Import Pricelist"}
             </label>
+          </div>
+
+          {/* SYNC DARI ACCURATE (BIRU) - Fetch dari Google Sheets */}
+          <div className="filter-group">
+            <label className="filter-label">SYNC ACCURATE</label>
+            <button
+              onClick={handleSyncFromSheets}
+              disabled={isSyncingSheets}
+              className="btn-import"
+              style={{
+                background: isSyncingSheets ? "#94a3b8" : "#3b82f6",
+                cursor: isSyncingSheets ? "not-allowed" : "pointer",
+              }}
+            >
+              {isSyncingSheets ? "⏳ Syncing..." : "🔄 Sync dari Accurate"}
+            </button>
           </div>
 
           {/* RESTORE BACKUP (ORANYE) - Gunakan File products_rows (2).csv */}

@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(supabase functions *)"
+      "Bash(supabase functions *)",
+      "Bash(curl -s -X POST https://hptfudqtrnyeqcqhhaeh.supabase.co/functions/v1/sync-from-sheets -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwdGZ1ZHF0cm55ZXFjcWhoYWVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMDEwODAsImV4cCI6MjA4Mzc3NzA4MH0.z6_4osc9GZfpZcUUyj51t4dGP3MUjq8No-hH8p9mB9U' -H 'Content-Type: application/json')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -X PATCH https://hptfudqtrnyeqcqhhaeh.supabase.co/rest/v1/users?username=eq.pic_aksesoris -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwdGZ1ZHF0cm55ZXFjcWhoYWVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIwMTA4MCwiZXhwIjoyMDgzNzc3MDgwfQ.cryAHWwkdqQn9hifVTGdBz_cwY4_fVCh-SDumWtyMco' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwdGZ1ZHF0cm55ZXFjcWhoYWVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIwMTA4MCwiZXhwIjoyMDgzNzc3MDgwfQ.cryAHWwkdqQn9hifVTGdBz_cwY4_fVCh-SDumWtyMco' -H 'Content-Type: application/json' -H 'Prefer: return=representation' -d '{ *)",
+      "Bash(node -e \"const d=[]; process.stdin.on\\('data',c=>d.push\\(c\\)\\); process.stdin.on\\('end',\\(\\)=>{ const r=JSON.parse\\(Buffer.concat\\(d\\)\\); console.log\\(r[0]?'OK: '+r[0].username+' | kategori_pic count: '+r[0].kategori_pic.length : JSON.stringify\\(r\\)\\); }\\)\")"
     ]
   }
 }

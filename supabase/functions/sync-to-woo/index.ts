@@ -77,7 +77,7 @@ serve(async (req) => {
     // ── Env vars ──────────────────────────────────────────
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const wooUrl = Deno.env.get("WOO_BASE_URL") || "https://hnsitcenter.id";
+    const wooUrl = Deno.env.get("WOO_BASE_URL") || "https://dev.hnsitcenter.id"; // fallback ke staging, bukan production
     const ck = Deno.env.get("WOO_CONSUMER_KEY");
     const cs = Deno.env.get("WOO_CONSUMER_SECRET");
 
@@ -113,13 +113,25 @@ serve(async (req) => {
     const oldRecord = payload.old_record || {};
     const kodeAccurate: string = newRecord["Kode Accurate"];
 
-    // ── Cek apakah PRICE benar-benar berubah ─────────────
-    const newPrice = Number(newRecord["PRICE"]);
-    const oldPrice = Number(oldRecord["PRICE"]);
+    // ── Skip kode lama (kepala 1, bukan 25xxx/26xxx) ─────
+    const isOldCode = kodeAccurate?.startsWith("1") &&
+      !kodeAccurate.startsWith("25") &&
+      !kodeAccurate.startsWith("26");
+
+    if (isOldCode) {
+      return new Response(
+        JSON.stringify({ status: "skipped", message: `Kode ${kodeAccurate} adalah kode lama (kepala 1), sync dilewati.` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
+    // ── Cek apakah SP (SRP / harga web) benar-benar berubah ─
+    const newPrice = Number(newRecord["SP"]);
+    const oldPrice = Number(oldRecord["SP"]);
 
     if (newPrice === oldPrice || !newPrice) {
       return new Response(
-        JSON.stringify({ status: "skipped", message: "PRICE tidak berubah, sync dilewati." }),
+        JSON.stringify({ status: "skipped", message: "SP (SRP) tidak berubah, sync dilewati." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
       );
     }
@@ -167,9 +179,9 @@ serve(async (req) => {
             woo_product_id: wooProductId,
             action: "sync_price",
             status: "success",
-            message: `Harga berhasil diupdate: Rp ${oldPrice.toLocaleString()} → Rp ${newPrice.toLocaleString()}`,
-            old_value: { PRICE: oldPrice },
-            new_value: { PRICE: newPrice, regular_price: body.regular_price },
+            message: `SRP berhasil diupdate: Rp ${oldPrice.toLocaleString()} → Rp ${newPrice.toLocaleString()}`,
+            old_value: { SP: oldPrice },
+            new_value: { SP: newPrice, regular_price: body.regular_price },
             duration_ms: duration,
           });
           results.push({ woo_product_id: wooProductId, status: "success" });
@@ -180,8 +192,8 @@ serve(async (req) => {
             action: "sync_price",
             status: "error",
             message: `WooCommerce API error: HTTP ${status}`,
-            old_value: { PRICE: oldPrice },
-            new_value: { PRICE: newPrice },
+            old_value: { SP: oldPrice },
+            new_value: { SP: newPrice },
             error_detail: JSON.stringify(body).substring(0, 500),
             duration_ms: duration,
           });
@@ -208,7 +220,7 @@ serve(async (req) => {
       JSON.stringify({
         status: "done",
         kode_accurate: kodeAccurate,
-        price_changed: { from: oldPrice, to: newPrice },
+        srp_changed: { from: oldPrice, to: newPrice },
         mappings_processed: mappings.length,
         success: successCount,
         failed: mappings.length - successCount,

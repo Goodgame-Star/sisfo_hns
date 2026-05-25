@@ -21,3 +21,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Google Service Account credentials (JANGAN COMMIT!)
+GOOGLE_SERVICE_ACCOUNT_JSON
+refined-sum-*.json
